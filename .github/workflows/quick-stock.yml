@@ -1,0 +1,30 @@
+name: Add quick stock button
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch stock UI
+        run: |
+          python3 - <<'PY'
+          p='medicine-manager-password.html'
+          s=open(p,encoding='utf-8').read()
+          marker='function quickAddStock(id)'
+          if marker not in s:
+              code=r'''function quickAddStock(id){let m=meds.find(x=>String(x.id)===String(id));if(!m)return alert('ঔষধ পাওয়া যায়নি।');let v=prompt(`"${m.name}"-এ কত পিস স্টক যোগ করবেন?`, '10');if(v===null)return;let q=parseInt(v,10);if(!Number.isFinite(q)||q<=0)return alert('সঠিক স্টক সংখ্যা দিন।');SB.from('medicines').update({stock:(+m.stock||0)+q}).eq('id',id).then(({error})=>{if(error)return alert('স্টক যোগ হয়নি: '+error.message);load().then(()=>alert(`✅ ${m.name}-এ ${q} পিস স্টক যোগ হয়েছে।`))})}
+function renderMeds(){let q=(search.value||'').toLowerCase();mt.innerHTML=meds.filter(m=>(m.name+' '+(m.company||'')).toLowerCase().includes(q)).map(m=>`<tr><td><b>${esc(m.name)}</b></td><td>${esc(m.company||'')}</td><td>${money(m.purchase_price)}</td><td>${money(m.sale_price)}</td><td><span class="badge">${m.stock}</span></td><td>${m.expiry_date||'-'}</td><td><button class="primary" onclick="quickAddStock('${m.id}')">➕ স্টক</button> <button class="dangerBtn" onclick="deleteMedicine('${m.id}')">মুছুন</button></td></tr>`).join('')||`<tr><td colspan="7">কোনো ঔষধ নেই</td></tr>`}
+'''
+              s=s.replace('</script>',code+'</script>')
+              open(p,'w',encoding='utf-8').write(s)
+          PY
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add medicine-manager-password.html
+          git rm .github/workflows/quick-stock.yml
+          git commit -m 'Add one-tap stock add button'
+          git push
