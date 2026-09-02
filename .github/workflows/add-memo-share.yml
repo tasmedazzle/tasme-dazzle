@@ -1,0 +1,29 @@
+name: Add memo share option
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add share option
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('medicine-manager-password.html')
+          s=p.read_text(encoding='utf-8')
+          old='<button class="primary" onclick="downloadMemo()">⬇️ Download</button><button onclick="printMemo()">🖨️ Print / PDF</button>'
+          new='<button class="primary" onclick="downloadMemo()">⬇️ Download</button><button onclick="printMemo()">🖨️ Print / PDF</button><button class="secondary" onclick="shareMemo()">📤 মেমো শেয়ার</button>'
+          if old in s and 'function shareMemo()' not in s:
+              s=s.replace(old,new,1)
+              marker='function downloadMemo(){'
+              fn="""function shareMemo(){if(!document.getElementById('printable'))return alert('আগে মেমো তৈরি করুন।');let m=lastMemo||{};let text='🧾 '+(m.shop||'German Homeo Hall')+'\\nমেমো #'+(m.serial||'')+'\\nতারিখ: '+(m.date||today())+'\\nক্রেতা: '+(m.customer||'-')+'\\nমোবাইল: '+(m.phone||'-')+'\\n\\n'+(m.rows||[]).map(x=>x.name+' × '+x.qty+' = '+money(x.qty*x.price)).join('\\n')+'\\n\\nসর্বমোট: '+money(m.total)+'\\nPaid: '+money(m.paid)+'\\nবাকি: '+money(m.due);if(navigator.share){navigator.share({title:'German Homeo Hall Memo #'+(m.serial||''),text}).catch(()=>{});}else{navigator.clipboard?.writeText(text);alert('মেমোর তথ্য কপি হয়েছে। এখন WhatsApp/Facebook-এ পেস্ট করে শেয়ার করুন।')}}"""
+              s=s.replace(marker,fn+marker,1)
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add medicine-manager-password.html
+          git diff --cached --quiet || (git commit -m 'Add memo share button' && git push)
