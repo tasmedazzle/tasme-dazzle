@@ -1,0 +1,27 @@
+name: Fix Bangla Word
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace ওষুধ with ঔষধ
+        run: |
+          sed -i 's/ওষুধ/ঔষধ/g' medicine-manager-password.html
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add medicine-manager-password.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'Fix Bangla spelling: ওষুধ to ঔষধ'
+            git push
+          fi
+          rm -f .github/workflows/fix-word-oshudh.yml
+          git add .github/workflows/fix-word-oshudh.yml
+          if ! git diff --cached --quiet; then
+            git commit -m 'Remove temporary spelling fix workflow'
+            git push
+          fi
