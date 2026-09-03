@@ -1,27 +1,8 @@
 name: Repair manager
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
-permissions:
-  contents: write
 jobs:
-  repair:
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Restore clean manager
-        run: |
-          git show 67bcdac4f00d6165d116aec32094f904418875c4:medicine-manager-password.html > medicine-manager-password.html
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add medicine-manager-password.html
-          git commit -m "Repair broken manager page" || true
-          git push
-      - name: Remove temporary workflow
-        if: always()
-        run: |
-          rm -f .github/workflows/repair-manager.yml
-          git add .github/workflows/repair-manager.yml 2>/dev/null || true
-          git diff --cached --quiet || git commit -m "Remove repair workflow" || true
-          git push || true
+      - run: echo "No automatic repair needed"
