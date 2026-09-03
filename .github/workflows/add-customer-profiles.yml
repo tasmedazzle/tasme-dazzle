@@ -1,0 +1,34 @@
+name: Add Customer Profiles
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[customer-profile-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch manager
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('medicine-manager-password.html')
+          s=p.read_text(encoding='utf-8')
+          old='<section id="customer" class="section"><div class="card"><h2>👤 ক্রেতার হিসাব / বাকি</h2><div class="tablewrap"><table><thead><tr><th>ক্রেতা</th><th>মোবাইল</th><th>মোট কেনা</th><th>বাকি</th></tr></thead><tbody id="customers"></tbody></table></div></div></section>'
+          new='''<section id="customer" class="section"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><h2 style="margin:0">👥 নিয়মিত কাস্টমার প্রোফাইল</h2><p class="muted">প্রতিটি নিয়মিত কাস্টমারের আলাদা হিসাব, বাকি ও সব মেমো এখানে থাকবে।</p></div><button class="primary" onclick="newCustomerProfile()">➕ নতুন কাস্টমার</button></div><input id="customerProfileSearch" oninput="renderCustomerProfiles()" placeholder="নাম / দোকানের নাম / মোবাইল দিয়ে খুঁজুন..."></div><div id="customerProfileList"></div><div id="customerProfileDetail"></div></section>'''
+          if old not in s: raise SystemExit('customer section pattern not found')
+          s=s.replace(old,new,1)
+          marker="if(sessionStorage.getItem('ghh_access')==='1')init();"
+          code='''\n/* CUSTOMER PROFILE FEATURE */\nlet customerProfiles=[];\nfunction customerRows(){return '<div class="muted">নিয়মিত কাস্টমার প্রোফাইল উপরে দেখুন।</div>'}\nasync function loadCustomerProfiles(){const {data,error}=await SB.from('customers').select('*').order('shop_name');if(error){customerProfileList.innerHTML='<div class="card red">কাস্টমার প্রোফাইল লোড হয়নি: '+esc(error.message)+'</div>';return}customerProfiles=data||[];renderCustomerProfiles()}\nfunction renderCustomerProfiles(){const q=(document.getElementById('customerProfileSearch')?.value||'').toLowerCase().trim();const arr=customerProfiles.filter(c=>([c.shop_name,c.customer_name,c.phone].join(' ')).toLowerCase().includes(q));customerProfileList.innerHTML=arr.map(c=>`<div class="card" style="cursor:pointer" onclick="openCustomerProfile(${c.id})"><div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:17px">👤 ${esc(c.shop_name||c.customer_name||'নাম নেই')}</b><div class="muted">${esc(c.customer_name||'')}${c.phone?' • 📱 '+esc(c.phone):''}</div></div><span>›</span></div></div>`).join('')||'<div class="card">কোনো নিয়মিত কাস্টমার নেই।</div>'}\nasync function newCustomerProfile(){const shop=prompt('দোকানের নাম / কাস্টমারের নাম লিখুন:');if(!shop?.trim())return;const name=prompt('কাস্টমারের নাম (ঐচ্ছিক):')||'';const phone=prompt('মোবাইল নম্বর (ঐচ্ছিক):')||'';const address=prompt('ঠিকানা (ঐচ্ছিক):')||'';const note=prompt('নোট (ঐচ্ছিক):')||'';const {data,error}=await SB.from('customers').insert({shop_name:shop.trim(),customer_name:name.trim(),phone:phone.trim(),address:address.trim(),note:note.trim()}).select().single();if(error)return alert('প্রোফাইল তৈরি হয়নি: '+error.message);await loadCustomerProfiles();openCustomerProfile(data.id)}\nasync function openCustomerProfile(id){const c=customerProfiles.find(x=>x.id==id);if(!c)return;const {data:ms,error}=await SB.from('memos').select('*').eq('customer_id',id).order('created_at',{ascending:false});if(error)return alert(error.message);const arr=ms||[];const total=arr.reduce((a,m)=>a+(+m.total||0),0),paid=arr.reduce((a,m)=>a+(+m.paid||0),0),due=arr.reduce((a,m)=>a+(+m.due||0),0);customerProfileDetail.innerHTML=`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h2 style="margin:0">👤 ${esc(c.shop_name||c.customer_name||'নাম নেই')}</h2><div class="muted">নাম: ${esc(c.customer_name||'-')} • 📱 ${esc(c.phone||'-')}</div><div class="muted">📍 ${esc(c.address||'ঠিকানা নেই')}</div></div><div class="actions"><button class="primary" onclick="newMemoForCustomer(${c.id})">🧾 নতুন মেমো</button><button class="secondary" onclick="editCustomerProfile(${c.id})">✏️ Edit</button></div></div><div class="grid" style="margin-top:12px"><div class="card stat"><span>💰 মোট মাল নিয়েছে</span><b class="green">${money(total)}</b></div><div class="card stat"><span>💵 মোট পরিশোধ</span><b>${money(paid)}</b></div><div class="card stat"><span>🔴 বর্তমান বাকি</span><b class="red">${money(due)}</b></div></div><h3>🧾 সব মেমো</h3>${arr.map(m=>`<div class="card" style="margin:8px 0"><b>মেমো #${m.serial_number}</b> • ${new Date(m.created_at).toLocaleDateString('bn-BD')}<br>মোট: ${money(m.total)} • Paid: ${money(m.paid)} • <span class="red">বাকি: ${money(m.due)}</span><div class="actions" style="margin-top:8px"><button class="secondary" onclick="viewMemo(${m.id})">মেমো দেখুন</button>${+m.due>0?`<button class="primary" onclick="openPayment(${m.serial_number})">💳 বাকি পরিশোধ</button>`:''}</div></div>`).join('')||'<p class="muted">এই কাস্টমারের কোনো মেমো এখনো নেই।</p>'}<p class="muted">${esc(c.note||'')}</p></div>`}\nfunction newMemoForCustomer(id){const c=customerProfiles.find(x=>x.id==id);if(!c)return;const btn=[...document.querySelectorAll('nav button')].find(x=>x.textContent.includes('মেমো'));tab('memo',btn);rn.value=c.customer_name||c.shop_name||'';rp.value=c.phone||'';shop.value=c.shop_name||'German Homeo Hall'}\nasync function editCustomerProfile(id){const c=customerProfiles.find(x=>x.id==id);if(!c)return;const name=prompt('কাস্টমারের নাম:',c.customer_name||'');if(name===null)return;const phone=prompt('মোবাইল:',c.phone||'');if(phone===null)return;const address=prompt('ঠিকানা:',c.address||'');if(address===null)return;const note=prompt('নোট:',c.note||'');if(note===null)return;const {error}=await SB.from('customers').update({customer_name:name.trim(),phone:phone.trim(),address:address.trim(),note:note.trim(),updated_at:new Date().toISOString()}).eq('id',id);if(error)return alert(error.message);await loadCustomerProfiles();openCustomerProfile(id)}\nconst _oldTab=tab;function tab(id,b){_oldTab(id,b);if(id==='customer')setTimeout(loadCustomerProfiles,0)}\n'''
+          if marker not in s: raise SystemExit('marker not found')
+          s=s.replace(marker,code+'\n'+marker,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add medicine-manager-password.html
+          git diff --cached --quiet || (git commit -m "Add customer profile option [customer-profile-patched]" && git push)
