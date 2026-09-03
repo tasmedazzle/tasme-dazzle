@@ -1,26 +1,25 @@
 name: Repair Medicine Manager
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
 permissions:
   contents: write
 jobs:
   repair:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'Repair broken manager page')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Restore working manager
+        with:
+          fetch-depth: 0
+      - name: Restore working manager and disable broken patch workflows
         run: |
-          git fetch --all --quiet
+          git fetch origin 9ab169fd44ce21430e123181a7e4c3e63f2094da --depth=1
           git checkout 9ab169fd44ce21430e123181a7e4c3e63f2094da -- medicine-manager-password.html
+          git rm -f .github/workflows/update-customer-commission.yml .github/workflows/fix-customer-commission-v2.yml .github/workflows/finalize-customer-ui.yml .github/workflows/repair-manager.yml || true
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add medicine-manager-password.html
-          git commit -m 'Repair broken manager page' || true
+          git add -A
+          git commit -m 'Repair broken manager page'
           git push
-      - name: Remove repair workflow
-        run: |
-          git rm .github/workflows/repair-manager.yml || true
-          git commit -m 'Remove temporary repair workflow' || true
-          git push || true
