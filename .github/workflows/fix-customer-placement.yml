@@ -1,0 +1,37 @@
+name: Fix customer profile placement
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-customer-placement.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move profile UI into customer tab
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('medicine-manager-password.html')
+          s=p.read_text(encoding='utf-8')
+          marker='GHH CUSTOMER PROFILE PLACEMENT FIX'
+          if marker in s: raise SystemExit
+          fix='''<script>/* GHH CUSTOMER PROFILE PLACEMENT FIX */
+          (function(){function place(){var x=document.getElementById('customerEnhanced'),c=document.getElementById('customer');if(x&&c&&x.parentElement!==c){c.innerHTML='';c.appendChild(x);}if(typeof enhanceMemoUI==='function')enhanceMemoUI();}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',place);else place();})();
+          </script>'''
+          s=s.replace('</body>',fix+'</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add medicine-manager-password.html
+          git commit -m 'Fix customer profile placement' || true
+          git push
+      - name: Remove temporary workflow
+        run: |
+          git rm .github/workflows/fix-customer-placement.yml
+          git commit -m 'Remove temporary placement workflow'
+          git push
