@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>German Homeo Hall — Online Medicine Manager</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+          if(sessionStorage.getItem('ghh_password_ok')==='1'){showApp();}
+          </script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif}
 header{background:#1d5b3a;color:#fff;padding:18px}header h1{margin:0;font-size:23px}header p{margin:4px 0 0}
@@ -18,10 +20,7 @@ form{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}label{font-size:13
 </style></head>
 <body>
 <header><div class="wrap"><h1>German Homeo Hall</h1><p>Online Medicine Stock & Sales Manager</p></div></header>
-<div id="login" class="wrap login"><div class="card"><h2>🔐 লগইন</h2><p class="muted">একই অ্যাকাউন্ট দিয়ে একাধিক ডিভাইসে ব্যবহার করুন।</p>
-<label>ইমেইল<input id="email" type="email" required></label><label>পাসওয়ার্ড<input id="password" type="password" required></label>
-<div style="display:flex;gap:8px"><button class="primary" onclick="login()">লগইন</button><button class="secondary" onclick="signup()">নতুন অ্যাকাউন্ট</button></div><p id="authmsg"></p></div></div>
-<div id="app" class="wrap" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span id="who" class="muted"></span><button onclick="logout()">লগআউট</button></div>
+<div id="login" class="wrap login"><div class="card"><h2>🔐 GHH SmartBiz</h2><p class="muted">আপনার ব্যবসার স্টক, মেমো, কাস্টমার ও হিসাব এক জায়গায়।</p><label>পাসওয়ার্ড<input id="password" type="password" placeholder="পাসওয়ার্ড লিখুন" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()"></label><button class="primary" onclick="login()">লগইন</button><p id="authmsg"></p></div></div><div id="app" class="wrap" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span id="who" class="muted"></span><button onclick="logout()">লগআউট</button></div>
 <nav><button class="active" onclick="tab('dash',this)">ড্যাশবোর্ড</button><button onclick="tab('med',this)">ওষুধ/স্টক</button><button onclick="tab('sale',this)">বিক্রি</button><button onclick="tab('buy',this)">মাল যোগ</button><button onclick="tab('memo',this)">মেমো</button><button onclick="tab('report',this)">রিপোর্ট</button></nav>
 <section id="dash" class="section active"><div class="grid"><div class="card stat">মোট ওষুধ<b id="nmed">0</b><span class="muted">আইটেম</span></div><div class="card stat">মোট স্টক<b id="nstock">0</b><span class="muted">পিস</span></div><div class="card stat">মোট বিক্রি<b id="ntotal">৳0</b><span class="muted">সব রেকর্ড</span></div><div class="card stat">মোট লাভ<b id="nprofit">৳0</b><span class="muted">সব রেকর্ড</span></div></div><div id="low"></div><div class="card"><h3>সাম্প্রতিক বিক্রি</h3><div class="tablewrap"><table><thead><tr><th>সময়</th><th>ওষুধ</th><th>পিস</th><th>মোট</th><th>লাভ</th></tr></thead><tbody id="recent"></tbody></table></div></div></section>
 <section id="med" class="section"><div class="card"><h3>নতুন ওষুধ যোগ</h3><form onsubmit="addMedicine(event"><label>ওষুধের নাম<input id="mn" required></label><label>কোম্পানি<input id="mc"></label><label>ক্রয়মূল্য<input id="mb" type="number" min="0" step=".01" required></label><label>বিক্রয়মূল্য<input id="ms" type="number" min="0" step=".01" required></label><label>স্টক<input id="mq" type="number" min="0" required value="0"></label><label>মেয়াদ<input id="me" type="date"></label><button class="primary full">সংরক্ষণ করুন</button></form></div><div class="card"><input id="search" oninput="renderMeds()" placeholder="ওষুধ খুঁজুন..."><div class="tablewrap"><table><thead><tr><th>ওষুধ</th><th>কোম্পানি</th><th>ক্রয়</th><th>বিক্রি</th><th>স্টক</th><th>মেয়াদ</th></tr></thead><tbody id="mt"></tbody></table></div></div></section>
@@ -32,10 +31,22 @@ form{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}label{font-size:13
 <script>
 const SB=window.supabase.createClient('https://xhddvvvdynxabhdorsju.supabase.co','sb_publishable_aw8D0PEOLoPqEOMMQUBp6A_XeriyvD3');let meds=[],sales=[],items=[];const money=n=>'৳'+Number(n||0).toLocaleString('en-BD',{minimumFractionDigits:2,maximumFractionDigits:2});const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 function tab(id,b){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active')}
-async function signup(){authmsg.textContent='';let {error}=await SB.auth.signUp({email:email.value,password:password.value});authmsg.textContent=error?error.message:'অ্যাকাউন্ট তৈরি হয়েছে। ইমেইল কনফার্ম করতে হতে পারে।'}
-async function login(){authmsg.textContent='';let {data,error}=await SB.auth.signInWithPassword({email:email.value,password:password.value});if(error)authmsg.textContent=error.message;else init(data.user)}
-async function logout(){await SB.auth.signOut();location.reload()}
-async function init(user){login.style.display='none';app.style.display='block';who.textContent='লগইন: '+user.email;rd.value=new Date().toISOString().slice(0,10);await load()}
+function login(){
+          const p=document.getElementById('password').value;
+          const msg=document.getElementById('authmsg');
+          if(p!=='drgp@@123'){msg.textContent='❌ পাসওয়ার্ড সঠিক নয়।';return;}
+          sessionStorage.setItem('ghh_password_ok','1');
+          showApp();
+          }
+          function logout(){sessionStorage.removeItem('ghh_password_ok');location.reload();}
+          function showApp(){
+          document.getElementById('login').style.display='none';
+          document.getElementById('app').style.display='block';
+          const who=document.getElementById('who'); if(who) who.textContent='পাসওয়ার্ড দিয়ে লগইন করা হয়েছে';
+          const rd=document.getElementById('rd'); if(rd) rd.value=new Date().toISOString().slice(0,10);
+          load();
+          }
+          function init(user){login.style.display='none';app.style.display='block';who.textContent='পাসওয়ার্ড দিয়ে লগইন করা হয়েছে';rd.value=new Date().toISOString().slice(0,10);await load()}
 async function load(){let a=await SB.from('medicines').select('*').order('name');meds=a.data||[];let b=await SB.from('sales').select('*').order('created_at',{ascending:false});sales=b.data||[];renderAll()}
 async function addMedicine(e){e.preventDefault();let {error}=await SB.from('medicines').insert({name:mn.value.trim(),company:mc.value.trim(),purchase_price:+mb.value,sale_price:+ms.value,stock:+mq.value,expiry_date:me.value||null});if(error)return alert(error.message);e.target.reset();mq.value=0;await load();alert('ওষুধ যোগ হয়েছে।')}
 function renderMeds(){let q=(search.value||'').toLowerCase();mt.innerHTML=meds.filter(m=>(m.name+' '+(m.company||'')).toLowerCase().includes(q)).map(m=>`<tr><td><b>${esc(m.name)}</b></td><td>${esc(m.company||'')}</td><td>${money(m.purchase_price)}</td><td>${money(m.sale_price)}</td><td class="${m.stock<=5?'danger':''}">${m.stock}</td><td>${m.expiry_date||'-'}</td></tr>`).join('')||'<tr><td colspan="6">কোনো ওষুধ নেই</td></tr>'}
