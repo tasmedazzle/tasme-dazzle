@@ -3,9 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>German Homeo Hall — Online Medicine Manager</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-          if(sessionStorage.getItem('ghh_password_ok')==='1'){showApp();}
-          </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif}
 header{background:#1d5b3a;color:#fff;padding:18px}header h1{margin:0;font-size:23px}header p{margin:4px 0 0}
@@ -93,4 +91,6 @@ function makeMemo(e){e.preventDefault();let rows=[...document.querySelectorAll('
 function downloadMemo(){let h=`<!doctype html><html lang="bn"><meta charset="utf-8"><title>German Homeo Hall Memo</title><style>body{font-family:system-ui,sans-serif;padding:20px}.receipt{max-width:700px;margin:auto;border:1px solid #ddd;padding:22px}h2,.center{text-align:center}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.right{text-align:right;font-weight:bold;font-size:18px}</style>${document.getElementById('printable').outerHTML}</html>`;let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='German-Homeo-Hall-Memo.html';a.click()}
 function printMemo(){let w=open('','_blank');w.document.write(document.getElementById('printable').outerHTML);w.document.close();w.print()}
 SB.auth.getSession().then(x=>{if(x.data.session)init(x.data.session.user)});addItem();
+
+if(sessionStorage.getItem('ghh_password_ok')==='1'){showApp();}
 </script></body></html>
