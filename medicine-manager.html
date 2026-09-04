@@ -51,4 +51,6 @@ let head=hasCommission?'<th>জেনারেল %</th><th>এক্সট্�
 function downloadMemo(){let blob=new Blob([receipt.innerHTML],{type:'text/html;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='memo.html';a.click()}
 function printMemo(){let w=window.open('','_blank');w.document.write('<html><head><meta charset="utf-8"><title>Memo</title></head><body>'+receipt.innerHTML+'</body></html>');w.document.close();w.print()}
 if(sessionStorage.getItem('ghh_password_ok')==='1'){showApp()}
+
+if(sessionStorage.getItem('ghh_password_ok')==='1'){showApp();}
 </script></body></html>
